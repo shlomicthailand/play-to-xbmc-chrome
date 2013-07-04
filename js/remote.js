@@ -82,14 +82,12 @@ function queueCurrentUrl(caller) {
 function queueYoutubeList(caller) {
     turnOnLoading(caller);
     console.log("Queue youtube list called " + urlList.length);
-    chrome.extension.sendMessage({action: 'queueList',urlList:urlList}, function (response) {
+    chrome.extension.sendMessage({action: 'queueList', urlList: urlList}, function (response) {
         onChangeUpdate();
 
         turnOffLoading(caller);
     });
 }
-
-
 
 
 function removeThisFromPlaylist(caller) {
@@ -143,7 +141,6 @@ function clearFavouritesTable() {
     localStorage.removeItem(favArrayKey);
     initFavouritesTable();
 }
-
 
 
 function createFavouritesActionButtons(i) {
@@ -353,16 +350,16 @@ function initProfiles() {
  * if this is youtube page which is part of a playlist , show all videos and the option to queue them all
  *
  */
-function initYouTubeList(){
+function initYouTubeList() {
     console.log('init youtube');
-    getCurrentUrl(function(tabUrl){
+    getCurrentUrl(function (tabUrl) {
         var queueListButton = $('#queueListButton');
         var youTubeListId = getURLParameter(tabUrl, 'list');
         console.log("checking youtube list");
-        if (youTubeListId){
+        if (youTubeListId) {
             extractVideosFromYouTubePlaylist(youTubeListId);
             queueListButton.attr('disabled', false);
-        }else{
+        } else {
 
             queueListButton.attr('disabled', true);
             console.log("queue list should be disabled");
@@ -379,21 +376,26 @@ function extractVideosFromYouTubePlaylist(playListID) {
         var list_data = "";
         //GLOBAL
         urlList = [];
+        console.log("youtube list fetch " + playListURL);
         $.each(data.feed.entry, function (i, item) {
 
             var feedTitle = item.title.$t;
-            var feedURL = item.link[1].href;
-            var fragments = feedURL.split("/");
-            var videoID = fragments[fragments.length - 2];
-            var url = videoURL + videoID;
-            var thumb = "http://img.youtube.com/vi/" + videoID + "/default.jpg";
+            var feedURL = getYoutubeVideoURL(item.link);
 
-            urlList.push(url);
-            console.log(url + " " + urlList.length);
+            if (feedURL != null) {
 
 
-            list_data += '<li><img alt="'+ feedTitle+'" src="'+ thumb +'"</img>' + feedTitle + '</li>';
+                var fragments = feedURL.split("/");
+                var videoID = fragments[fragments.length - 2];
+                var url = videoURL + videoID;
+                //var thumb = "http://img.youtube.com/vi/" + videoID + "/default.jpg";
+                var thumb = item.media$group.media$thumbnail[0].url;
+                urlList.push(feedURL);
+                console.log("xbmc url=" +feedURL);
 
+
+                list_data += '<li>' + feedTitle + '<br><img title="' + feedURL + '" src="' + thumb + '"</img></li>';
+            }
 
         });
         //console.log(list_data);
@@ -402,6 +404,16 @@ function extractVideosFromYouTubePlaylist(playListID) {
 }
 
 
+function getYoutubeVideoURL(links) {
+    for (var i = 0; i < links.length; i++) {
+        var link = links[i];
+        if (link.rel === 'alternate') {
+            return link.href;
+        }
+    }
+    return null;
+
+}
 
 function initKeyBindings() {
     $(document).keydown(function (e) {
